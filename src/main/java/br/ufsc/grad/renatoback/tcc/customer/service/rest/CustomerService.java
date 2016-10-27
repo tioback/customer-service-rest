@@ -15,16 +15,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.concurrent.ListenableFuture;
 import org.springframework.web.client.AsyncRestTemplate;
 
-import br.ufsc.grad.renatoback.tcc.customer.service.rest.RemoteConfigWrapper.RemoteConfig;
-
 @Service
 public class CustomerService {
 
 	private Log logger = LogFactory.getLog(CustomerService.class);
 
-	private static final String LOYALTY_URL = "http://%s:8235/%d";
-	private static final String POST_URL = "http://%s:8236/%d";
-	private static final String EMAIL_URL = "http://%s:8237/%d";
+	private static final String LOYALTY_URL = "http://%s:%s/%d";
+	private static final String POST_URL = "http://%s:%s/%d";
+	private static final String EMAIL_URL = "http://%s:%s/%d";
 
 	AtomicInteger counter = new AtomicInteger();
 
@@ -43,14 +41,14 @@ public class CustomerService {
 
 	private void signalUserCreation(int userId) {
 
-		ListenableFuture<URI> loyaltyResult = new AsyncRestTemplate().postForLocation(
-				String.format(LOYALTY_URL, remoteConfig.getLoyaltyServiceHost(), System.nanoTime()), null);
+		ListenableFuture<URI> loyaltyResult = new AsyncRestTemplate().postForLocation(String.format(LOYALTY_URL,
+				remoteConfig.getLoyaltyServiceHost(), remoteConfig.getLoyaltyServicePort(), System.nanoTime()), null);
 		logger.info("REQ >> Loyalty");
-		ListenableFuture<URI> postResult = new AsyncRestTemplate()
-				.postForLocation(String.format(POST_URL, remoteConfig.getPostServiceHost(), System.nanoTime()), null);
+		ListenableFuture<URI> postResult = new AsyncRestTemplate().postForLocation(String.format(POST_URL,
+				remoteConfig.getPostServiceHost(), remoteConfig.getPostServicePort(), System.nanoTime()), null);
 		logger.info("REQ >> Post");
-		ListenableFuture<URI> emailResult = new AsyncRestTemplate()
-				.postForLocation(String.format(EMAIL_URL, remoteConfig.getEmailServiceHost(), System.nanoTime()), null);
+		ListenableFuture<URI> emailResult = new AsyncRestTemplate().postForLocation(String.format(EMAIL_URL,
+				remoteConfig.getEmailServiceHost(), remoteConfig.getEmailServicePort(), System.nanoTime()), null);
 		logger.info("REQ >> Email");
 
 		try {
