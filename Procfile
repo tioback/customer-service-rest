@@ -1,1 +1,1 @@
-web: java $JAVA_OPTS -Dspring.profiles.active=heroku -Dserver.port $PORT -jar target/customer-service-rest*.jar
+web: java $JAVA_OPTS -Dspring.profiles.active=heroku -Dserver.port=$PORT -jar target/customer-service-rest*.jar
