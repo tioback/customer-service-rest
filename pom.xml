@@ -60,6 +60,9 @@
 		<profile>
 			<id>custom</id>
 		</profile>
+		<profile>
+			<id>heroku</id>
+		</profile>
 	</profiles>
 
 </project>

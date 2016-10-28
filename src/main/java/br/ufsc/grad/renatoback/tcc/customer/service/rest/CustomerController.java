@@ -2,6 +2,7 @@ package br.ufsc.grad.renatoback.tcc.customer.service.rest;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -19,9 +20,21 @@ public class CustomerController {
 		customerService.createCustomer();
 	}
 
-	@RequestMapping(method = RequestMethod.GET)
+	/**
+	 * Exemplo: GET /50/30/2/25 50 repetições por 30 segundos de intervalo
+	 * executar 2 threads com 25 milisegundos de sleep
+	 * 
+	 * @param repetitions
+	 * @param interval
+	 * @param threads
+	 * @param sleep
+	 */
+	@RequestMapping(path = "/{repetitions}/{interval}/{threads}/{sleep}", method = RequestMethod.GET)
 	@ResponseStatus(code = HttpStatus.OK)
-	public void createForAMinute() {
-		customerService.createForAMinute();
+	public void createForAMinute(@PathVariable(required = true, name = "repetitions") int repetitions,
+			@PathVariable(required = true, name = "interval") int interval,
+			@PathVariable(required = true, name = "threads") int threads,
+			@PathVariable(required = true, name = "sleep") int sleep) {
+		customerService.createForAMinute(repetitions, interval, threads, sleep);
 	}
 }

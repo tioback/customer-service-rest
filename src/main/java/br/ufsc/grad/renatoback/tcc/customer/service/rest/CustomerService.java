@@ -41,49 +41,86 @@ public class CustomerService {
 
 	private void signalUserCreation(int userId) {
 
+		long time = System.nanoTime();
+
 		ListenableFuture<URI> loyaltyResult = new AsyncRestTemplate().postForLocation(String.format(LOYALTY_URL,
-				remoteConfig.getLoyaltyServiceHost(), remoteConfig.getLoyaltyServicePort(), System.nanoTime()), null);
-		logger.info("REQ >> Loyalty");
-		ListenableFuture<URI> postResult = new AsyncRestTemplate().postForLocation(String.format(POST_URL,
-				remoteConfig.getPostServiceHost(), remoteConfig.getPostServicePort(), System.nanoTime()), null);
-		logger.info("REQ >> Post");
-		ListenableFuture<URI> emailResult = new AsyncRestTemplate().postForLocation(String.format(EMAIL_URL,
-				remoteConfig.getEmailServiceHost(), remoteConfig.getEmailServicePort(), System.nanoTime()), null);
-		logger.info("REQ >> Email");
+				remoteConfig.getLoyaltyServiceHost(), remoteConfig.getLoyaltyServicePort(), time), null);
+		// logger.info("REQ >> Loyalty");
+		ListenableFuture<URI> postResult = new AsyncRestTemplate().postForLocation(
+				String.format(POST_URL, remoteConfig.getPostServiceHost(), remoteConfig.getPostServicePort(), time),
+				null);
+		// logger.info("REQ >> Post");
+		ListenableFuture<URI> emailResult = new AsyncRestTemplate().postForLocation(
+				String.format(EMAIL_URL, remoteConfig.getEmailServiceHost(), remoteConfig.getEmailServicePort(), time),
+				null);
+		// logger.info("REQ >> Email");
 
 		try {
 			loyaltyResult.get(10, TimeUnit.SECONDS);
-			logger.info("RES << Loyalty");
+			// logger.info("RES << Loyalty");
 		} catch (InterruptedException | ExecutionException | TimeoutException e) {
-			logger.error("ERR -- Loyalty");
+			// logger.error("ERR -- Loyalty");
 		}
 		try {
 			postResult.get(10, TimeUnit.SECONDS);
-			logger.info("RES << Post");
+			// logger.info("RES << Post");
 		} catch (InterruptedException | ExecutionException | TimeoutException e) {
-			logger.error("ERR -- Post");
+			// logger.error("ERR -- Post");
 		}
 		try {
 			emailResult.get(10, TimeUnit.SECONDS);
-			logger.info("RES << Email");
+			// logger.info("RES << Email");
 		} catch (InterruptedException | ExecutionException | TimeoutException e) {
-			logger.error("ERR -- Email");
+			// logger.error("ERR -- Email");
 		}
 	}
 
-	public void createForAMinute() {
-		ExecutorService executor = Executors.newFixedThreadPool(2);
-		long start = System.nanoTime();
-		// System.out.printf("Nano %d and millis %d", start,
-		// System.currentTimeMillis());
-		// System.out.println();
-		while (System.nanoTime() - start < 60000000000l) {
-			executor.execute(() -> {
-				createCustomer();
-			});
+	public void createForAMinute(int repetitions, int interval_seg, int threads, int sleep) {
+		// BEGIN CONFIG
+		final long interval_nano = interval_seg * 1_000_000_000l;
+		// END CONFIG
+
+		ExecutorService executor;
+		for (int i = 0; i < repetitions; i++) {
+			logger.info(String.format("Starting batch %d", i));
+			clearStatistics();
+
+			executor = Executors.newFixedThreadPool(threads);
+			long start = System.nanoTime();
+			while (System.nanoTime() - start < interval_nano) {
+				executor.execute(() -> {
+					createCustomer();
+				});
+
+				try {
+					Thread.sleep(sleep);
+				} catch (InterruptedException e) {
+				}
+			}
+			int sobra = executor.shutdownNow().size();
+			logger.info(String.format("Fim do processamento com %d threads não processadas.", sobra));
+			printStatistics();
 		}
-		int sobra = executor.shutdownNow().size();
-		logger.info(String.format("Fim do processamento com %d threads não processadas.", sobra));
+	}
+
+	private void clearStatistics() {
+		new AsyncRestTemplate().delete(String.format(LOYALTY_URL, remoteConfig.getLoyaltyServiceHost(),
+				remoteConfig.getLoyaltyServicePort(), null));
+		new AsyncRestTemplate().delete(
+				String.format(POST_URL, remoteConfig.getPostServiceHost(), remoteConfig.getPostServicePort(), null));
+		new AsyncRestTemplate().delete(
+				String.format(EMAIL_URL, remoteConfig.getEmailServiceHost(), remoteConfig.getEmailServicePort(), null));
+	}
+
+	private void printStatistics() {
+		new AsyncRestTemplate().put(String.format(LOYALTY_URL, remoteConfig.getLoyaltyServiceHost(),
+				remoteConfig.getLoyaltyServicePort(), null), null);
+		new AsyncRestTemplate().put(
+				String.format(POST_URL, remoteConfig.getPostServiceHost(), remoteConfig.getPostServicePort(), null),
+				null);
+		new AsyncRestTemplate().put(
+				String.format(EMAIL_URL, remoteConfig.getEmailServiceHost(), remoteConfig.getEmailServicePort(), null),
+				null);
 	}
 
 }
