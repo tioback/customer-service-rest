@@ -2,6 +2,7 @@ package br.ufsc.grad.renatoback.tcc.customer.service.rest;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.commons.logging.Log;
@@ -118,7 +119,16 @@ public class CustomerService {
 					}
 				});
 			}
-			int sobra = executor.shutdownNow().size();
+			executor.shutdown();
+			int sobra = 0;
+			try {
+				if (!executor.awaitTermination(interval_seg, TimeUnit.SECONDS)) {
+					sobra = executor.shutdownNow().size();
+				}
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 			logger.info(String.format("Fim do processamento com %d threads não processadas.", sobra));
 			printStatistics();
 		}
