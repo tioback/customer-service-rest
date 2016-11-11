@@ -37,4 +37,24 @@ public class CustomerController {
 			@PathVariable(required = true, name = "sleep") int sleep) {
 		customerService.createForAMinute(repetitions, interval, threads, sleep);
 	}
+
+	/**
+	 * Exemplo: GET /50/30/2/25 50 repetições por 30 segundos de intervalo
+	 * executar 2 threads com 25 milisegundos de sleep
+	 * 
+	 * @param repetitions
+	 * @param interval
+	 * @param threads
+	 * @param sleep
+	 */
+	@RequestMapping(path = "/{repetitions}/{interval}/{threads}/{start}/{increment}/{end}", method = RequestMethod.GET)
+	@ResponseStatus(code = HttpStatus.OK)
+	public void createForAMinute(@PathVariable(required = true, name = "repetitions") int repetitions,
+			@PathVariable(required = true, name = "interval") int interval,
+			@PathVariable(required = true, name = "threads") int threads,
+			@PathVariable(required = true, name = "start") int start,
+			@PathVariable(required = true, name = "increment") int increment,
+			@PathVariable(required = true, name = "end") int end) {
+		customerService.iterateCreateForAMinute(repetitions, interval, threads, start, increment, end);
+	}
 }

@@ -19,6 +19,9 @@ public class CustomerService {
 	private static final String LOYALTY_URL = "http://%s:%s/%d";
 	private static final String POST_URL = "http://%s:%s/%d";
 	private static final String EMAIL_URL = "http://%s:%s/%d";
+	private static final String PRINT_LOYALTY_STATISTICS_URL = "http://%s:%s/%d/%d";
+	private static final String PRINT_POST_STATISTICS_URL = "http://%s:%s/%d/%d";
+	private static final String PRINT_EMAIL_STATISTICS_URL = "http://%s:%s/%d/%d";
 
 	AtomicInteger counter = new AtomicInteger();
 
@@ -130,7 +133,7 @@ public class CustomerService {
 				e.printStackTrace();
 			}
 			logger.info(String.format("Fim do processamento com %d threads não processadas.", sobra));
-			printStatistics();
+			printStatistics(threads, sleep);
 		}
 	}
 
@@ -143,15 +146,24 @@ public class CustomerService {
 				String.format(EMAIL_URL, remoteConfig.getEmailServiceHost(), remoteConfig.getEmailServicePort(), null));
 	}
 
-	private void printStatistics() {
-		new AsyncRestTemplate().put(String.format(LOYALTY_URL, remoteConfig.getLoyaltyServiceHost(),
-				remoteConfig.getLoyaltyServicePort(), null), null);
-		new AsyncRestTemplate().put(
-				String.format(POST_URL, remoteConfig.getPostServiceHost(), remoteConfig.getPostServicePort(), null),
-				null);
-		new AsyncRestTemplate().put(
-				String.format(EMAIL_URL, remoteConfig.getEmailServiceHost(), remoteConfig.getEmailServicePort(), null),
-				null);
+	private void printStatistics(int threads, int sleep) {
+		_printStatistics(PRINT_LOYALTY_STATISTICS_URL, remoteConfig.getLoyaltyServiceHost(),
+				remoteConfig.getLoyaltyServicePort(), threads, sleep);
+		_printStatistics(PRINT_POST_STATISTICS_URL, remoteConfig.getPostServiceHost(),
+				remoteConfig.getPostServicePort(), threads, sleep);
+		_printStatistics(PRINT_EMAIL_STATISTICS_URL, remoteConfig.getEmailServiceHost(),
+				remoteConfig.getEmailServicePort(), threads, sleep);
+	}
+
+	private void _printStatistics(String url, String host, String port, int threads, int sleep) {
+		new AsyncRestTemplate().put(String.format(url, host, port, threads, sleep, null), null);
+	}
+
+	public void iterateCreateForAMinute(int repetitions, int interval, int threads, int start, int increment, int end) {
+		for (int i = start; i <= end; i = i + increment) {
+			createForAMinute(repetitions, interval, threads, i);
+		}
+
 	}
 
 }
