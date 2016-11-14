@@ -1,1 +1,1 @@
-web: java $JAVA_OPTS -Xmx512m -Dspring.profiles.active=heroku -Dserver.port=$PORT -jar target/customer-service-rest*.jar
+web: java $JAVA_OPTS -Xmx512m -Duser.timezone="America/Sao_Paulo" -Dspring.profiles.active=heroku -Dserver.port=$PORT -jar target/customer-service-rest*.jar
