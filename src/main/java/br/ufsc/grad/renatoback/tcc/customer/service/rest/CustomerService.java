@@ -106,6 +106,8 @@ public class CustomerService {
 		ExecutorService executor;
 		for (int i = 0; i < repetitions; i++) {
 			logger.info(String.format("Starting batch %d", i));
+			int activeThreadsCount = Thread.activeCount();
+			System.err.println(String.format("Starting batch %d [%d]", i, activeThreadsCount));
 			clearStatistics();
 
 			executor = Executors.newFixedThreadPool(threads);
