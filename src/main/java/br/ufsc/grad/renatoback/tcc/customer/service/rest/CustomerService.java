@@ -1,5 +1,6 @@
 package br.ufsc.grad.renatoback.tcc.customer.service.rest;
 
+import java.util.Date;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -43,7 +44,7 @@ public class CustomerService {
 
 	private void signalUserCreation(int userId) {
 
-		long time = System.nanoTime();
+		long time = new Date().getTime();
 
 		switch (index.cyclicallyIncrementAndGet()) {
 		case 0:
@@ -101,7 +102,7 @@ public class CustomerService {
 
 	public void createForAMinute(int repetitions, int interval_seg, int threads, int sleep) {
 		// BEGIN CONFIG
-		final long interval_nano = interval_seg * 1_000_000_000l;
+		final long interval_nano = TimeUnit.SECONDS.toNanos(interval_seg);
 		// END CONFIG
 
 		ExecutorService executor;
@@ -115,7 +116,7 @@ public class CustomerService {
 			long start = System.nanoTime();
 			for (int j = 0; j < threads; j++) {
 				executor.execute(() -> {
-					while (System.nanoTime() - start < interval_nano) {
+					while (new Date().getTime() - start < interval_nano) {
 						createCustomer();
 
 						try {

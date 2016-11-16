@@ -63,6 +63,6 @@ public class CustomerController {
 	@RequestMapping(method = RequestMethod.OPTIONS)
 	@ResponseStatus(code = HttpStatus.OK)
 	public void printTime() {
-		System.out.println("Nano time: " + new Date());
+		System.out.println("Nano time: " + new Date().getTime());
 	}
 }
