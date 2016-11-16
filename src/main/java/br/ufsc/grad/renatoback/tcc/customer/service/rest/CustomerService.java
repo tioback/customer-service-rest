@@ -10,6 +10,7 @@ import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.AsyncRestTemplate;
+import org.springframework.web.client.RestTemplate;
 
 @Service
 public class CustomerService {
@@ -140,12 +141,13 @@ public class CustomerService {
 	}
 
 	private void clearStatistics() {
-		new AsyncRestTemplate().delete(String.format(LOYALTY_URL, remoteConfig.getLoyaltyServiceHost(),
-				remoteConfig.getLoyaltyServicePort(), null));
-		new AsyncRestTemplate().delete(
-				String.format(POST_URL, remoteConfig.getPostServiceHost(), remoteConfig.getPostServicePort(), null));
-		new AsyncRestTemplate().delete(
-				String.format(EMAIL_URL, remoteConfig.getEmailServiceHost(), remoteConfig.getEmailServicePort(), null));
+		_clearStatistics(LOYALTY_URL, remoteConfig.getLoyaltyServiceHost(), remoteConfig.getLoyaltyServicePort());
+		_clearStatistics(POST_URL, remoteConfig.getPostServiceHost(), remoteConfig.getPostServicePort());
+		_clearStatistics(EMAIL_URL, remoteConfig.getEmailServiceHost(), remoteConfig.getEmailServicePort());
+	}
+
+	private void _clearStatistics(String baseUrl, String host, String port) {
+		new RestTemplate().delete(String.format(baseUrl, host, port, null));
 	}
 
 	private void printStatistics(int threads, int sleep) {
@@ -158,7 +160,7 @@ public class CustomerService {
 	}
 
 	private void _printStatistics(String url, String host, String port, int threads, int sleep) {
-		new AsyncRestTemplate().put(String.format(url, host, port, threads, sleep, null), null);
+		new RestTemplate().put(String.format(url, host, port, threads, sleep, null), null);
 	}
 
 	public void iterateCreateForAMinute(int repetitions, int interval, int threads, int start, int increment, int end) {
