@@ -37,6 +37,12 @@ public class CustomerService {
 	}
 
 	public void createCustomer() {
+		configAsyncHttpClient(15, 5);
+		_createCustomer();
+		httpExecutorService.shutdownNow();
+	}
+
+	public void _createCustomer() {
 		_doProcessing();
 
 		signalUserCreation(counter.incrementAndGet());
@@ -177,7 +183,7 @@ public class CustomerService {
 			for (int j = 0; j < threads; j++) {
 				executor.execute(() -> {
 					interval_mk: while (new Date().getTime() - start < interval_millis) {
-						createCustomer();
+						_createCustomer();
 
 						try {
 							Thread.sleep(sleep);
