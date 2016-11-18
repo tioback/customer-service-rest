@@ -10,12 +10,14 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import com.ning.http.client.AsyncHttpClient;
 import com.ning.http.client.AsyncHttpClientConfig;
 
+@Profile("spring")
 @Service
 public class SpringCustomerService implements CustomerService {
 
@@ -31,12 +33,19 @@ public class SpringCustomerService implements CustomerService {
 	AtomicInteger counter = new AtomicInteger();
 
 	RemoteConfig rc;
+	RestTemplate restTemplate;
 
 	public SpringCustomerService(RemoteConfig rc) {
 		this.rc = rc;
 	}
 
 	public void createCustomer() {
+		configAsyncHttpClient(15, 5);
+		_createCustomer();
+		httpExecutorService.shutdownNow();
+	}
+
+	public void _createCustomer() {
 		_doProcessing();
 
 		signalUserCreation(counter.incrementAndGet());
@@ -103,10 +112,12 @@ public class SpringCustomerService implements CustomerService {
 				.setRequestTimeout((int) TimeUnit.SECONDS.toMillis(1)).setCompressionEnforced(true)
 				.setFollowRedirect(followRedirects).build();
 		asyncHttpClient = new AsyncHttpClient(config);
+
+		restTemplate = new RestTemplate();
 	}
 
 	private void delete(String url) {
-		new RestTemplate().delete(url);
+		restTemplate.delete(url);
 
 		// try {
 		// asyncHttpClient.prepareDelete(url).execute().get(1,
@@ -120,7 +131,7 @@ public class SpringCustomerService implements CustomerService {
 	}
 
 	private void put(String url) {
-		new RestTemplate().put(url, null);
+		restTemplate.put(url, null);
 
 		// try {
 		// asyncHttpClient.preparePut(url).execute().get(1, TimeUnit.SECONDS);
@@ -177,7 +188,7 @@ public class SpringCustomerService implements CustomerService {
 			for (int j = 0; j < threads; j++) {
 				executor.execute(() -> {
 					interval_mk: while (new Date().getTime() - start < interval_millis) {
-						createCustomer();
+						_createCustomer();
 
 						try {
 							Thread.sleep(sleep);
@@ -231,4 +242,5 @@ public class SpringCustomerService implements CustomerService {
 		}
 		httpExecutorService.shutdownNow();
 	}
+
 }

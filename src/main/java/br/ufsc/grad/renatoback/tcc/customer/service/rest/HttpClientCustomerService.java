@@ -21,8 +21,11 @@ import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.protocol.BasicHttpContext;
 import org.apache.http.protocol.HttpContext;
+import org.springframework.context.annotation.Profile;
+import org.springframework.stereotype.Service;
 
-//@Service
+@Profile("http")
+@Service
 public class HttpClientCustomerService implements CustomerService {
 
 	private Log logger = LogFactory.getLog(HttpClientCustomerService.class);
