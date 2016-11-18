@@ -4,6 +4,8 @@ public interface CustomerService {
 
 	void createCustomer();
 
+	void create_Customer();
+
 	void createForAMinute(int repetitions, int interval, int threads, int sleep);
 
 	void iterateCreateForAMinute(int repetitions, int interval, int threads, int start, int increment, int end);

@@ -6,6 +6,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.commons.logging.Log;
@@ -26,26 +27,39 @@ public class SpringCustomerService implements CustomerService {
 	private static final String LOYALTY_URL = "http://%s:%s/%d";
 	private static final String POST_URL = "http://%s:%s/%d";
 	private static final String EMAIL_URL = "http://%s:%s/%d";
+	private static final String LOYALTY_SYNC_URL = "http://%s:%s/sync/%d";
+	private static final String POST_SYNC_URL = "http://%s:%s/sync/%d";
+	private static final String EMAIL_SYNC_URL = "http://%s:%s/sync/%d";
 	private static final String PRINT_LOYALTY_STATISTICS_URL = "http://%s:%s/%d/%d";
 	private static final String PRINT_POST_STATISTICS_URL = "http://%s:%s/%d/%d";
 	private static final String PRINT_EMAIL_STATISTICS_URL = "http://%s:%s/%d/%d";
+	private static final boolean FOLLOW_REDIRECTS = true;
+	private static final boolean CONNECTION_POOLING = true;
+	private static final Long BASE_TIME = 379089900000l;
 
-	AtomicInteger counter = new AtomicInteger();
-
-	RemoteConfig rc;
-	RestTemplate restTemplate;
+	private AtomicBoolean synchronizedTime;
+	private AtomicInteger counter;
+	private RemoteConfig rc;
+	private RestTemplate restTemplate;
+	private AtomicCyclicCounter index;
+	private AsyncHttpClient asyncHttpClient;
+	private ExecutorService httpExecutorService;
 
 	public SpringCustomerService(RemoteConfig rc) {
 		this.rc = rc;
+		synchronizedTime = new AtomicBoolean(false);
+		counter = new AtomicInteger();
+		index = new AtomicCyclicCounter(5);
 	}
 
 	public void createCustomer() {
 		configAsyncHttpClient(15, 5);
-		_createCustomer();
+		synchronizeTime();
+		create_Customer();
 		httpExecutorService.shutdownNow();
 	}
 
-	public void _createCustomer() {
+	public void create_Customer() {
 		_doProcessing();
 
 		signalUserCreation(counter.incrementAndGet());
@@ -54,8 +68,6 @@ public class SpringCustomerService implements CustomerService {
 	private void _doProcessing() {
 		// TODO Adicionar algo que consuma tempo de processamento
 	}
-
-	AtomicCyclicCounter index = new AtomicCyclicCounter(5);
 
 	private void signalUserCreation(int userId) {
 
@@ -95,22 +107,16 @@ public class SpringCustomerService implements CustomerService {
 		}
 	}
 
-	private AsyncHttpClient asyncHttpClient;
-
-	boolean followRedirects = true;
-	boolean connectionPooling = true;
-	ExecutorService httpExecutorService;
-
 	private void configAsyncHttpClient(int threads, int interval) {
 		System.err.println("Configurando novo client...");
 		httpExecutorService = new ThreadPoolExecutor(0, threads * 2, interval, TimeUnit.SECONDS,
 				new SynchronousQueue<>());
 		// httpExecutorService = Executors.newFixedThreadPool(threads);
 		AsyncHttpClientConfig config = new AsyncHttpClientConfig.Builder().setExecutorService(httpExecutorService)
-				.setMaxConnectionsPerHost(1000).setAllowPoolingConnections(connectionPooling)
-				.setAllowPoolingSslConnections(connectionPooling).setConnectTimeout((int) TimeUnit.SECONDS.toMillis(1))
+				.setMaxConnectionsPerHost(1000).setAllowPoolingConnections(CONNECTION_POOLING)
+				.setAllowPoolingSslConnections(CONNECTION_POOLING).setConnectTimeout((int) TimeUnit.SECONDS.toMillis(1))
 				.setRequestTimeout((int) TimeUnit.SECONDS.toMillis(1)).setCompressionEnforced(true)
-				.setFollowRedirect(followRedirects).build();
+				.setFollowRedirect(FOLLOW_REDIRECTS).build();
 		asyncHttpClient = new AsyncHttpClient(config);
 
 		restTemplate = new RestTemplate();
@@ -167,6 +173,7 @@ public class SpringCustomerService implements CustomerService {
 
 	public void createForAMinute(int repetitions, int interval_seg, int threads, int sleep) {
 		configAsyncHttpClient(threads, interval_seg);
+		synchronizeTime();
 		_createForAMinute(repetitions, interval_seg, threads, sleep);
 		httpExecutorService.shutdownNow();
 	}
@@ -178,39 +185,37 @@ public class SpringCustomerService implements CustomerService {
 
 		ExecutorService executor;
 		for (int i = 0; i < repetitions; i++) {
-			logger.info(String.format("Starting batch %d", i));
 			int activeThreadsCount = Thread.activeCount();
-			System.err.println(String.format("Starting batch %d [%d]", i, activeThreadsCount));
+			logger.info(String.format("[%d] - INICIO - [%d] ativas", i, activeThreadsCount));
+
 			clearStatistics();
 
 			executor = Executors.newFixedThreadPool(threads);
-			long start = System.nanoTime();
-			for (int j = 0; j < threads; j++) {
-				executor.execute(() -> {
-					interval_mk: while (new Date().getTime() - start < interval_millis) {
-						_createCustomer();
+			long start = System.currentTimeMillis();
 
-						try {
-							Thread.sleep(sleep);
-						} catch (InterruptedException e) {
-							break interval_mk;
-						}
-					}
-				});
+			for (int j = 0; j < threads; j++) {
+				executor.execute(new Task(this, start, interval_millis, sleep));
 			}
-			executor.shutdown();
-			int sobra = 0;
-			try {
-				if (!executor.awaitTermination(interval_seg, TimeUnit.SECONDS)) {
-					sobra = executor.shutdownNow().size();
-				}
-			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-			logger.info(String.format("Fim do processamento com %d threads não processadas.", sobra));
+			int sobra = stopExecutor(interval_seg, executor);
+
+			logger.info(String.format("[%d] - FIM    - [%d] interrompidas", i, sobra));
+
 			printStatistics(threads, sleep);
 		}
+	}
+
+	private int stopExecutor(int interval_seg, ExecutorService executor) {
+		executor.shutdown();
+		int sobra = 0;
+		try {
+			if (!executor.awaitTermination(interval_seg, TimeUnit.SECONDS)) {
+				sobra = executor.shutdownNow().size();
+			}
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return sobra;
 	}
 
 	private void clearStatistics() {
@@ -237,10 +242,27 @@ public class SpringCustomerService implements CustomerService {
 
 	public void iterateCreateForAMinute(int repetitions, int interval, int threads, int start, int increment, int end) {
 		configAsyncHttpClient(threads, interval);
+		synchronizeTime();
 		for (int i = start; i <= end; i = i + increment) {
 			_createForAMinute(repetitions, interval, threads, i);
 		}
 		httpExecutorService.shutdownNow();
+	}
+
+	private void synchronizeTime() {
+		if (synchronizedTime.get()) {
+			return;
+		}
+
+		long diff = System.currentTimeMillis() - BASE_TIME;
+		_syncClock(LOYALTY_SYNC_URL, rc.getLoyaltyServiceHost(), rc.getLoyaltyServicePort(), diff);
+		_syncClock(POST_SYNC_URL, rc.getPostServiceHost(), rc.getPostServicePort(), diff);
+		_syncClock(EMAIL_SYNC_URL, rc.getEmailServiceHost(), rc.getEmailServicePort(), diff);
+		synchronizedTime.set(true);
+	}
+
+	private void _syncClock(String url, String host, String port, long diff) {
+		put(String.format(url, host, port, diff));
 	}
 
 }

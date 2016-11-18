@@ -69,13 +69,13 @@ public class HttpClientCustomerService implements CustomerService {
 	public void createCustomer() {
 		try {
 			setUpConnections(1);
-			_createCustomer();
+			create_Customer();
 		} finally {
 			closeConnections();
 		}
 	}
 
-	private void _createCustomer() {
+	public void create_Customer() {
 		_doProcessing();
 		signalUserCreation(counter.incrementAndGet());
 	}
@@ -197,7 +197,7 @@ public class HttpClientCustomerService implements CustomerService {
 				for (int j = 0; j < threads; j++) {
 					executor.execute(() -> {
 						interval_mk: while (System.currentTimeMillis() - start <= interval_millis) {
-							_createCustomer();
+							create_Customer();
 
 							try {
 								Thread.sleep(sleep);
