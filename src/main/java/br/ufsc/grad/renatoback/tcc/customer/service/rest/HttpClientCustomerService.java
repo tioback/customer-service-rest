@@ -52,7 +52,7 @@ public class HttpClientCustomerService implements CustomerService {
 		PoolingHttpClientConnectionManager cm = new PoolingHttpClientConnectionManager();
 		cm.setMaxTotal(max);
 
-		httpclient = HttpClients.custom().setConnectionManager(cm).build();
+		httpclient = HttpClients.custom().setConnectionManager(cm).disableAutomaticRetries().build();
 	}
 
 	private void closeConnections() {
@@ -102,7 +102,7 @@ public class HttpClientCustomerService implements CustomerService {
 			try (CloseableHttpResponse response = httpclient.execute(request, context)) {
 				// sent...
 			} catch (Exception e) {
-				System.out.println(String.format("[ERROR][%s]: %s", name, e.getMessage()));
+				sobra.incrementAndGet();
 			}
 		}
 	}
@@ -175,33 +175,26 @@ public class HttpClientCustomerService implements CustomerService {
 		return new SignalThread(name, new HttpPost(String.format(baseUrl, host, port, time)));
 	}
 
+	private AtomicInteger sobra;
+
 	public void createForAMinute(int repetitions, int interval_seg, int threads, int sleep) {
 		final long interval_millis = TimeUnit.SECONDS.toMillis(interval_seg);
 
-		try {
-			setUpConnections(threads);
+		ExecutorService executor;
+		for (int i = 0; i < repetitions; i++) {
+			logger.info(String.format("[%d] - INICIO - [%d] Ativas", i, Thread.activeCount()));
 
-			ExecutorService executor;
-			for (int i = 0; i < repetitions; i++) {
-				AtomicInteger sobra = new AtomicInteger(0);
-				logger.info(String.format("Starting batch %d", i));
-				int activeThreadsCount = Thread.activeCount();
-				System.err.println(String.format("Starting batch %d [%d]", i, activeThreadsCount));
-				clearStatistics();
+			sobra = new AtomicInteger(0);
 
-				// executor = Executors.newFixedThreadPool(threads);
-				executor = new ThreadPoolExecutor(0, Math.max(1, threads * 2 / 3), interval_seg, TimeUnit.SECONDS,
-						new SynchronousQueue<>(), new RejectedExecutionHandler() {
+			clearStatistics();
 
-							@Override
-							public void rejectedExecution(Runnable r, ThreadPoolExecutor executor) {
-								sobra.incrementAndGet();
-							}
-						});
+			executor = setUpExecutor(interval_seg, threads);
+			try {
+				setUpConnections(threads);
 				long start = System.currentTimeMillis();
 				for (int j = 0; j < threads; j++) {
 					executor.execute(() -> {
-						interval_mk: while (System.currentTimeMillis() - start < interval_millis) {
+						interval_mk: while (System.currentTimeMillis() - start <= interval_millis) {
 							_createCustomer();
 
 							try {
@@ -212,41 +205,63 @@ public class HttpClientCustomerService implements CustomerService {
 						}
 					});
 				}
-				executor.shutdown();
-				try {
-					if (!executor.awaitTermination(interval_seg, TimeUnit.SECONDS)) {
-						sobra.addAndGet(executor.shutdownNow().size());
-					}
-				} catch (InterruptedException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-				logger.info(String.format("Fim do processamento com %d threads não processadas.", sobra.get()));
-				printStatistics(threads, sleep);
+				stopExecutor(interval_seg, executor);
+			} finally {
+				closeConnections();
 			}
 
-		} finally {
-			closeConnections();
+			printStatistics(threads, sleep);
+			logger.info(String.format("[%d] - FIM - [%d] Canceladas", i, sobra.get()));
+		}
+
+	}
+
+	private void stopExecutor(int interval_seg, ExecutorService executor) {
+		executor.shutdown();
+		try {
+			if (!executor.awaitTermination(interval_seg, TimeUnit.SECONDS)) {
+				sobra.addAndGet(executor.shutdownNow().size());
+			}
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 	}
 
+	private ThreadPoolExecutor setUpExecutor(int interval_seg, int threads) {
+		return new ThreadPoolExecutor(0, Math.max(1, threads * 2 / 3), interval_seg, TimeUnit.SECONDS,
+				new SynchronousQueue<>(), new RejectedExecutionHandler() {
+
+					@Override
+					public void rejectedExecution(Runnable r, ThreadPoolExecutor executor) {
+						sobra.incrementAndGet();
+					}
+				});
+	}
+
 	private void clearStatistics() {
-		SignalThread[] signals = new SignalThread[] {
+		try {
+			setUpConnections(3);
 
-				_clearStatistics("Loyalty", LOYALTY_URL, rc.getLoyaltyServiceHost(), rc.getLoyaltyServicePort()),
-				_clearStatistics("Post", POST_URL, rc.getPostServiceHost(), rc.getPostServicePort()),
-				_clearStatistics("Email", EMAIL_URL, rc.getEmailServiceHost(), rc.getEmailServicePort()) };
+			SignalThread[] signals = new SignalThread[] {
 
-		for (int j = 0; j < signals.length; j++) {
-			signals[j].start();
-		}
+					_clearStatistics("Loyalty", LOYALTY_URL, rc.getLoyaltyServiceHost(), rc.getLoyaltyServicePort()),
+					_clearStatistics("Post", POST_URL, rc.getPostServiceHost(), rc.getPostServicePort()),
+					_clearStatistics("Email", EMAIL_URL, rc.getEmailServiceHost(), rc.getEmailServicePort()) };
 
-		for (int j = 0; j < signals.length; j++) {
-			try {
-				signals[j].join();
-			} catch (InterruptedException e) {
-				// e.printStackTrace();
+			for (int j = 0; j < signals.length; j++) {
+				signals[j].start();
 			}
+
+			for (int j = 0; j < signals.length; j++) {
+				try {
+					signals[j].join();
+				} catch (InterruptedException e) {
+					// e.printStackTrace();
+				}
+			}
+		} finally {
+			closeConnections();
 		}
 	}
 
@@ -259,25 +274,32 @@ public class HttpClientCustomerService implements CustomerService {
 	}
 
 	private void printStatistics(int threads, int sleep) {
-		SignalThread[] signals = new SignalThread[] {
-				_printStatistics("Loyalty", PRINT_LOYALTY_STATISTICS_URL, rc.getLoyaltyServiceHost(),
-						rc.getLoyaltyServicePort(), threads, sleep),
-				_printStatistics("Post", PRINT_POST_STATISTICS_URL, rc.getPostServiceHost(), rc.getPostServicePort(),
-						threads, sleep),
-				_printStatistics("Email", PRINT_EMAIL_STATISTICS_URL, rc.getEmailServiceHost(),
-						rc.getEmailServicePort(), threads, sleep) };
+		try {
+			setUpConnections(3);
 
-		for (int j = 0; j < signals.length; j++) {
-			signals[j].start();
-		}
+			SignalThread[] signals = new SignalThread[] {
+					_printStatistics("Loyalty", PRINT_LOYALTY_STATISTICS_URL, rc.getLoyaltyServiceHost(),
+							rc.getLoyaltyServicePort(), threads, sleep),
+					_printStatistics("Post", PRINT_POST_STATISTICS_URL, rc.getPostServiceHost(),
+							rc.getPostServicePort(), threads, sleep),
+					_printStatistics("Email", PRINT_EMAIL_STATISTICS_URL, rc.getEmailServiceHost(),
+							rc.getEmailServicePort(), threads, sleep) };
 
-		for (int j = 0; j < signals.length; j++) {
-			try {
-				signals[j].join();
-			} catch (InterruptedException e) {
-				// e.printStackTrace();
+			for (int j = 0; j < signals.length; j++) {
+				signals[j].start();
 			}
+
+			for (int j = 0; j < signals.length; j++) {
+				try {
+					signals[j].join();
+				} catch (InterruptedException e) {
+					// e.printStackTrace();
+				}
+			}
+		} finally {
+			closeConnections();
 		}
+
 	}
 
 	private SignalThread _printStatistics(String name, String baseUrl, String host, String port, int threads,
@@ -287,6 +309,12 @@ public class HttpClientCustomerService implements CustomerService {
 
 	private SignalThread put(String name, String url) {
 		return new SignalThread(name, new HttpPut(url));
+	}
+
+	public void iterateCreateForAMinute(int repetitions, int interval, int threads, int start, int increment, int end) {
+		for (int i = start; i <= end; i = i + increment) {
+			createForAMinute(repetitions, interval, threads, i);
+		}
 	}
 
 	// public void createForAMinute(int repetitions, int interval_seg, int

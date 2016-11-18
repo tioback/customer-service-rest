@@ -57,8 +57,7 @@ public class CustomerController {
 			@PathVariable(required = true, name = "start") int start,
 			@PathVariable(required = true, name = "increment") int increment,
 			@PathVariable(required = true, name = "end") int end) {
-		// customerService.iterateCreateForAMinute(repetitions, interval,
-		// threads, start, increment, end);
+		customerService.iterateCreateForAMinute(repetitions, interval, threads, start, increment, end);
 	}
 
 	@RequestMapping(method = RequestMethod.OPTIONS)
