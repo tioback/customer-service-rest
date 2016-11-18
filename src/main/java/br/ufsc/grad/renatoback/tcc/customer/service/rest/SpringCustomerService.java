@@ -10,17 +10,13 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClientBuilder;
-import org.apache.http.impl.client.HttpClients;
-import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
-import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
+import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import com.ning.http.client.AsyncHttpClient;
 import com.ning.http.client.AsyncHttpClientConfig;
 
-//@Service
+@Service
 public class SpringCustomerService implements CustomerService {
 
 	private Log logger = LogFactory.getLog(SpringCustomerService.class);
@@ -91,13 +87,10 @@ public class SpringCustomerService implements CustomerService {
 	}
 
 	private AsyncHttpClient asyncHttpClient;
-	private RestTemplate restTemplate;
 
 	boolean followRedirects = true;
 	boolean connectionPooling = true;
 	ExecutorService httpExecutorService;
-
-	final int defaultTimeout = (int) TimeUnit.SECONDS.toMillis(1);
 
 	private void configAsyncHttpClient(int threads, int interval) {
 		System.err.println("Configurando novo client...");
@@ -106,28 +99,14 @@ public class SpringCustomerService implements CustomerService {
 		// httpExecutorService = Executors.newFixedThreadPool(threads);
 		AsyncHttpClientConfig config = new AsyncHttpClientConfig.Builder().setExecutorService(httpExecutorService)
 				.setMaxConnectionsPerHost(1000).setAllowPoolingConnections(connectionPooling)
-				.setAllowPoolingSslConnections(connectionPooling).setConnectTimeout(defaultTimeout)
-				.setRequestTimeout(defaultTimeout).setCompressionEnforced(true).setFollowRedirect(followRedirects)
-				.build();
+				.setAllowPoolingSslConnections(connectionPooling).setConnectTimeout((int) TimeUnit.SECONDS.toMillis(1))
+				.setRequestTimeout((int) TimeUnit.SECONDS.toMillis(1)).setCompressionEnforced(true)
+				.setFollowRedirect(followRedirects).build();
 		asyncHttpClient = new AsyncHttpClient(config);
-
-		PoolingHttpClientConnectionManager cm = new PoolingHttpClientConnectionManager();
-		cm.setMaxTotal(3);
-
-		CloseableHttpClient httpClient = HttpClients.custom().setConnectionManager(cm).build();
-
-		HttpComponentsClientHttpRequestFactory factory = new HttpComponentsClientHttpRequestFactory();
-		factory.setBufferRequestBody(false);
-		// factory.setConnectionRequestTimeout(defaultTimeout);
-		// factory.setConnectTimeout(defaultTimeout);
-		// factory.setReadTimeout(defaultTimeout);
-		factory.setHttpClient(
-				HttpClientBuilder.create().setConnectionManager(new PoolingHttpClientConnectionManager()).build());
-		restTemplate = new RestTemplate(factory);
 	}
 
 	private void delete(String url) {
-		restTemplate.delete(url);
+		new RestTemplate().delete(url);
 
 		// try {
 		// asyncHttpClient.prepareDelete(url).execute().get(1,
@@ -141,7 +120,7 @@ public class SpringCustomerService implements CustomerService {
 	}
 
 	private void put(String url) {
-		restTemplate.put(url, null);
+		new RestTemplate().put(url, null);
 
 		// try {
 		// asyncHttpClient.preparePut(url).execute().get(1, TimeUnit.SECONDS);
@@ -224,56 +203,25 @@ public class SpringCustomerService implements CustomerService {
 	}
 
 	private void clearStatistics() {
-		_clearStatistics("Loyalty", LOYALTY_URL, rc.getLoyaltyServiceHost(), rc.getLoyaltyServicePort());
-		_clearStatistics("Post", POST_URL, rc.getPostServiceHost(), rc.getPostServicePort());
-		_clearStatistics("Email", EMAIL_URL, rc.getEmailServiceHost(), rc.getEmailServicePort());
+		_clearStatistics(LOYALTY_URL, rc.getLoyaltyServiceHost(), rc.getLoyaltyServicePort());
+		_clearStatistics(POST_URL, rc.getPostServiceHost(), rc.getPostServicePort());
+		_clearStatistics(EMAIL_URL, rc.getEmailServiceHost(), rc.getEmailServicePort());
 	}
 
-	private void _clearStatistics(String name, String baseUrl, String host, String port) {
-		final int total = 3;
-		int retry = 0;
-		while (retry++ < total) {
-			try {
-				delete(String.format(baseUrl, host, port, null));
-				return;
-			} catch (Exception e) {
-				System.err.println(
-						String.format("Error clearing statistics for %s, retrying... [%d/%d]", name, retry, total));
-				try {
-					Thread.sleep(100);
-				} catch (InterruptedException e1) {
-				}
-			}
-		}
-		System.err.println("Quitting after " + total + " errors trying to clear statistics for " + name);
+	private void _clearStatistics(String baseUrl, String host, String port) {
+		delete(String.format(baseUrl, host, port, null));
 	}
 
 	private void printStatistics(int threads, int sleep) {
-		_printStatistics("Loyalty", PRINT_LOYALTY_STATISTICS_URL, rc.getLoyaltyServiceHost(),
-				rc.getLoyaltyServicePort(), threads, sleep);
-		_printStatistics("Post", PRINT_POST_STATISTICS_URL, rc.getPostServiceHost(), rc.getPostServicePort(), threads,
+		_printStatistics(PRINT_LOYALTY_STATISTICS_URL, rc.getLoyaltyServiceHost(), rc.getLoyaltyServicePort(), threads,
 				sleep);
-		_printStatistics("Email", PRINT_EMAIL_STATISTICS_URL, rc.getEmailServiceHost(), rc.getEmailServicePort(),
-				threads, sleep);
+		_printStatistics(PRINT_POST_STATISTICS_URL, rc.getPostServiceHost(), rc.getPostServicePort(), threads, sleep);
+		_printStatistics(PRINT_EMAIL_STATISTICS_URL, rc.getEmailServiceHost(), rc.getEmailServicePort(), threads,
+				sleep);
 	}
 
-	private void _printStatistics(String name, String url, String host, String port, int threads, int sleep) {
-		final int total = 3;
-		int retry = 0;
-		while (retry++ < total) {
-			try {
-				put(String.format(url, host, port, threads, sleep, null));
-				return;
-			} catch (Exception e) {
-				System.err.println(
-						String.format("Error printing statistics for %s, retrying... [%d/%d]", name, retry, total));
-				try {
-					Thread.sleep(100);
-				} catch (InterruptedException e1) {
-				}
-			}
-		}
-		System.err.println("Quitting after " + total + " errors trying to print statistics for " + name);
+	private void _printStatistics(String url, String host, String port, int threads, int sleep) {
+		put(String.format(url, host, port, threads, sleep, null));
 	}
 
 	public void iterateCreateForAMinute(int repetitions, int interval, int threads, int start, int increment, int end) {
@@ -283,5 +231,4 @@ public class SpringCustomerService implements CustomerService {
 		}
 		httpExecutorService.shutdownNow();
 	}
-
 }
