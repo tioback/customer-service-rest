@@ -275,7 +275,7 @@ public class HttpClientCustomerService implements CustomerService {
 		return new SignalThread(name, new HttpDelete(url));
 	}
 
-	private void printStatistics(int threads, int sleep) {
+	public void printStatistics(int threads, int sleep) {
 		try {
 			setUpConnections(3);
 
