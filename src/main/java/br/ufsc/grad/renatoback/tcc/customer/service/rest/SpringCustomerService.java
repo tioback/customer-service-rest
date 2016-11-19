@@ -96,7 +96,7 @@ public class SpringCustomerService implements CustomerService {
 
 	private void configAsyncHttpClient(int threads, int interval) {
 		System.err.println("Configurando novo client...");
-		httpExecutorService = new ThreadPoolExecutor(0, threads * 2, interval, TimeUnit.SECONDS,
+		httpExecutorService = new ThreadPoolExecutor(0, Math.max(20, threads * 2), interval, TimeUnit.SECONDS,
 				new SynchronousQueue<>());
 		// httpExecutorService = Executors.newFixedThreadPool(threads);
 		AsyncHttpClientConfig config = new AsyncHttpClientConfig.Builder().setExecutorService(httpExecutorService)
