@@ -6,7 +6,7 @@
 	<groupId>br.ufsc.grad.renatoback.tcc</groupId>
 	<artifactId>customer-service-rest</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<packaging>war</packaging>
+	<packaging>jar</packaging>
 
 	<name>customer-service-rest</name>
 	<description>Módulo REST para as funcionalidades do serviço de cadastro de consumidores</description>
