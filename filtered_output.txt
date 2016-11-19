@@ -1,0 +1,8 @@
+2016-11-19T02:30:46.634109+00:00 app[web.1]: 2016-11-19 00:30:46.632  INFO 4 --- [       Thread-2] ationConfigEmbeddedWebApplicationContext : Closing org.springframework.boot.context.embedded.AnnotationConfigEmbeddedWebApplicationContext@2b2948e2: startup date [Fri Nov 18 23:58:57 BRST 2016]; root of context hierarchy
+2016-11-19T02:30:46.679238+00:00 app[web.1]: 2016-11-19 00:30:46.678  INFO 4 --- [       Thread-2] o.s.j.e.a.AnnotationMBeanExporter        : Unregistering JMX-exposed beans on shutdown
+2016-11-19T02:30:46.830081+00:00 app[web.1]: [TomcatEmbeddedWebappClassLoader@62e8dcce] info using configuration file:/app/target/customer-service-rest-0.0.1-SNAPSHOT.jar!/META-INF/aop.xml
+2016-11-19T02:30:46.829916+00:00 app[web.1]: [TomcatEmbeddedWebappClassLoader@62e8dcce] info AspectJ Weaver Version 1.8.9 built on Monday Mar 14, 2016 at 21:18:16 GMT
+2016-11-19T02:30:46.830035+00:00 app[web.1]: [TomcatEmbeddedWebappClassLoader@62e8dcce] info using configuration file:/app/target/customer-service-rest-0.0.1-SNAPSHOT.jar!/META-INF/aop.xml
+2016-11-19T02:30:46.829987+00:00 app[web.1]: [TomcatEmbeddedWebappClassLoader@62e8dcce] info register classloader org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedWebappClassLoader@62e8dcce
+2016-11-19T02:30:46.832055+00:00 app[web.1]: [TomcatEmbeddedWebappClassLoader@62e8dcce] info register aspect br.ufsc.grad.renatoback.tcc.customer.service.rest.LatencyAspect
+2016-11-19T02:30:46.944109+00:00 app[web.1]: [TomcatEmbeddedWebappClassLoader@62e8dcce] info register aspect br.ufsc.grad.renatoback.tcc.customer.service.rest.LatencyAspect

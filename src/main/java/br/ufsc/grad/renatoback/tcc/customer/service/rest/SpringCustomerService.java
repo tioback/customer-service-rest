@@ -137,23 +137,22 @@ public class SpringCustomerService implements CustomerService {
 
 	public void _createForAMinute(int repetitions, int interval_seg, int threads, int sleep) {
 		// BEGIN CONFIG
-		final long interval_millis = TimeUnit.SECONDS.toMillis(interval_seg);
+		final long interval_nano = TimeUnit.SECONDS.toNanos(interval_seg);
 		// END CONFIG
 
 		ExecutorService executor;
 		for (int i = 0; i < repetitions; i++) {
 			int activeThreadsCount = Thread.activeCount();
-			logger.info(String.format("[%d] - INICIO - [%d] ativas", i, activeThreadsCount));
-
 			executor = Executors.newFixedThreadPool(threads);
-			long start = System.currentTimeMillis();
+			long start = System.nanoTime();
 
 			for (int j = 0; j < threads; j++) {
-				executor.execute(new Task(this, start, interval_millis, sleep));
+				executor.execute(new Task(this, start, interval_nano, sleep));
 			}
 			int sobra = stopExecutor(interval_seg, executor);
 
-			logger.info(String.format("[%d] - FIM    - [%d] interrompidas", i, sobra));
+			logger.info(String.format("FIM [Iteração][Ativas][Interrompidas] - [%d][%d][%d]", i, activeThreadsCount,
+					sobra));
 
 			printStatistics(threads, sleep);
 		}
@@ -167,7 +166,6 @@ public class SpringCustomerService implements CustomerService {
 				sobra = executor.shutdownNow().size();
 			}
 		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		return sobra;

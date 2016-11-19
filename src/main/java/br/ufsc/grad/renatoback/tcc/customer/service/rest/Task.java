@@ -16,7 +16,7 @@ public class Task implements Runnable {
 
 	@Override
 	public void run() {
-		while (System.currentTimeMillis() - start < interval) {
+		while (System.nanoTime() - start < interval) {
 			service.create_Customer();
 
 			try {

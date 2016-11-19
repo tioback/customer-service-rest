@@ -41,7 +41,7 @@ public class LatencyAspect {
 	@Before("execution(* SpringCustomerService.printStatistics(..)) && args(threads,sleep)")
 	public void print(JoinPoint jointPoint, int threads, int sleep) throws Throwable {
 		// int threads = 0, sleep = 0;
-		logger.info(String.format("Threads/Pausa/Registros/Latência:\t[%d][%d][%d][%d]", threads, sleep,
+		logger.info(String.format("[STAT]-[Thread][Pausa][Registros][Latência]:\t%d\t%d\t%d\t%d", threads, sleep,
 				counter.getAndSet(0), average.getAndSet(0)));
 	}
 
