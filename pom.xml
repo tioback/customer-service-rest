@@ -29,11 +29,6 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
-<!--         <dependency> -->
-<!-- 		    <groupId>org.springframework.boot</groupId> -->
-<!-- 		    <artifactId>spring-boot-starter-jetty</artifactId> -->
-<!-- 		    <scope>compile</scope> -->
-<!-- 		</dependency> -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-jersey</artifactId>
@@ -80,8 +75,6 @@
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-surefire-plugin</artifactId>
 				<configuration>
-<!-- 						-javaagent:/Developer/Java/repo/org/aspectj/aspectjweaver/1.8.9/aspectjweaver-1.8.9.jar -->
-<!-- 						-javaagent:/Developer/Java/repo/org/springframework/spring-instrument/4.3.3.RELEASE/spring-instrument-4.3.3.RELEASE.jar -->
 					<argLine>
 						-javaagent:${project.build.directory}/lib/aspectjweaver-1.8.9.jar
 						-javaagent:${project.build.directory}/lib/spring-instrument-4.3.4.RELEASE.jar
